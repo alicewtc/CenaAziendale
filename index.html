@@ -185,7 +185,7 @@ async function sendVote(team, additionalVotes) {
 
         // Invia la nuova somma
         const patchRes = await fetch(NPOINT_URL, {
-            method: "PATCH",
+            method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(currentData)
         });
