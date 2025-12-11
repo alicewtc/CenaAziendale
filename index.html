@@ -77,12 +77,26 @@ let votesData = {};
 let chart; 
 
 function populateSelects() {
+    teamSelect.innerHTML = "";
+
     TEAMS.forEach(t => {
-        const opt = document.createElement("option"); opt.value=t; opt.textContent=t;
+        const opt = document.createElement("option");
+        opt.value = t;
+        opt.textContent = t;
+
+        if (votedTeams.includes(t)) {
+            opt.disabled = true;     // ❌ already voted
+            opt.textContent += " (già votata)";
+        }
+
         teamSelect.appendChild(opt);
     });
-    for(let i=1;i<=10;i++){
-        const opt = document.createElement("option"); opt.value=i; opt.textContent=i;
+
+    scoreSelect.innerHTML = "";
+    for (let i = 1; i <= 10; i++) {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = i;
         scoreSelect.appendChild(opt);
     }
 }
@@ -197,6 +211,15 @@ voteBtn.addEventListener("click", async ()=>{
 
     if (sendSuccess) {
         message.textContent = `✅ Voto di ${score} per ${team} registrato con successo!`;
+        // 🔒 Salva che la squadra è stata votata
+        if (!votedTeams.includes(team)) {
+          votedTeams.push(team);
+          localStorage.setItem("votedTeams", JSON.stringify(votedTeams));
+        }
+
+        // 🔄 Aggiorna il menu delle squadre disabilitando quella votata
+        populateSelects();
+      
         renderStats();
     } 
 
