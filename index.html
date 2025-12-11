@@ -65,7 +65,7 @@
 
 
 <script>
-// ⚠️ if you found this url, it controls all the app data, rejoice, now come to sviluppo sicuro to join us. lil hacker
+// ⚠️ if you found this url, it controls all the app data, rejoice lil hacker
 const NPOINT_URL = "https://api.npoint.io/236e96a835b472f70f49"; 
 const TEAMS = ["Squadra 1","Squadra 2","Squadra 3","Squadra 4","Squadra 5","Squadra 6","Squadra 7","Squadra 8"];
 
@@ -118,7 +118,6 @@ async function fetchVotes() {
 
     } catch (e) {
         console.warn("Fetch failed, using fallback data:", e);
-
         // Fallback JSON if fetch fails
         const fallbackData = {
             "Squadra 1": { "votes": 1 },
@@ -169,7 +168,7 @@ function renderStats() {
     }
 }
 
-// ZERO CONCURRENCY MANAGEMNT, THANKS TO IA FOR THIS
+
 async function sendVote(team, additionalVotes) {
     try {
         // Fetch voti correnti
@@ -204,8 +203,31 @@ async function sendVote(team, additionalVotes) {
     }
 }
 
+function populateSelects() {
+    teamSelect.innerHTML = "";
+    TEAMS.forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t;
+        opt.textContent = t;
+        if (votedTeams.includes(t)) {
+            opt.disabled = true;
+            opt.textContent += " (già votata)";
+        }
+        teamSelect.appendChild(opt);
+    });
+    scoreSelect.innerHTML = "";
+    for (let i = 1; i <= 10; i++) {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = i;
+        scoreSelect.appendChild(opt);
+    }
+    const firstTeam = teamSelect.value;
+    voteBtn.disabled = votedTeams.includes(firstTeam);
+}
 
 
+//IA and its concurrency management be like
 voteBtn.addEventListener("click", async () => {
     const team = teamSelect.value;
     const score = parseInt(scoreSelect.value, 10);
@@ -214,7 +236,6 @@ voteBtn.addEventListener("click", async () => {
     voteBtn.disabled = true;
     message.textContent = "⏳ Invio del voto in corso...";
 
-    // Invio PATCH + fetch dei voti correnti
     const updatedData = await sendVote(team, score);
 
     votesData = updatedData;
