@@ -2,11 +2,10 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>Votazione Squadre (Correzione API)</title>
+<title>Votazione Squadre </title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-  /* Stile Dark Mode (omesso per brevità, usa il CSS della risposta precedente) */
   body { 
     font-family: sans-serif; 
     background:#0f172a; 
@@ -35,7 +34,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>Votazione Squadre (nPoint API)</h1>
+    <h1>Votazione Squadre)</h1>
 
     <div>
         <label for="teamSelect">Squadra:</label>
@@ -62,8 +61,7 @@
 </div>
 
 <script>
-// ⚠️ CORREZIONE ESSENZIALE: Usiamo l'URL API corretto.
-// Ho usato l'ID dal tuo bin precedente come esempio.
+// ⚠️ if you found this url, it controls all the app data, rejoice, now come to sviluppo sicuro to join us. lil hacker
 const NPOINT_URL = "https://api.npoint.io/236e96a835b472f70f49"; 
 
 const TEAMS = ["Squadra 1","Squadra 2","Squadra 3","Squadra 4","Squadra 5","Squadra 6","Squadra 7","Squadra 8"];
@@ -89,7 +87,7 @@ function populateSelects() {
     }
 }
 
-// Lettura Dati: Usa l'URL API (GET)
+
 async function fetchVotes() {
     try {
         const res = await fetch(NPOINT_URL);
@@ -108,12 +106,12 @@ async function fetchVotes() {
         
     } catch(e){
         console.error("Errore fetch nPoint:", e);
-        message.textContent = "❌ Errore caricamento dati (Verifica l'URL API).";
+        message.textContent = "❌ Errore caricamento dati.";
         return false;
     }
 }
 
-// Scrittura Dati: Usa l'URL API e il metodo POST (anziché PATCH, non supportato)
+
 async function sendVote(updatedData) {
     try {
         const res = await fetch(NPOINT_URL, {
@@ -173,7 +171,7 @@ function renderStats() {
     }
 }
 
-// Gestione Evento Voto (CLICK)
+
 voteBtn.addEventListener("click", async ()=>{
     const team = teamSelect.value;
     const score = parseInt(scoreSelect.value, 10);
@@ -183,18 +181,18 @@ voteBtn.addEventListener("click", async ()=>{
     voteBtn.disabled = true;
     message.textContent = '⏳ Invio del voto in corso... Attendere.';
 
-    // 1. Leggi i dati correnti
+    
     const fetchSuccess = await fetchVotes();
     if (!fetchSuccess) {
         voteBtn.disabled = false;
         return;
     }
 
-    // 2. Aggiorna i dati in locale
+    
     if(!votesData[team]) votesData[team] = { votes: 0 };
     votesData[team].votes += score;
 
-    // 3. Invia i dati aggiornati (POST)
+    
     const sendSuccess = await sendVote(votesData);
 
     if (sendSuccess) {
@@ -205,7 +203,7 @@ voteBtn.addEventListener("click", async ()=>{
     voteBtn.disabled = false;
 });
 
-// Avvio
+
 populateSelects();
 fetchVotes().then(renderStats);
 </script>
