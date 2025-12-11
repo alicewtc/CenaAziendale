@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Votazione Squadre (Correzione API)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  /* Stile Dark Mode (omesso per brevità, usa il CSS della risposta precedente) */
+  body { 
+    font-family: sans-serif; 
+    background:#0f172a; 
+    color:#e5e7eb; 
+    margin:0; 
+    padding:2rem;
+  }
+  .container { 
+    max-width: 600px; 
+    margin: 0 auto; 
+    padding: 1.5rem;
+    background: #1e293b;
+    border-radius: 8px;
+  }
+  hr { border-color: #334155; margin: 1.5rem 0; }
+  select, button { padding:0.6rem; margin:0.25rem 0; border-radius:6px; border:none; font-size: 1rem; }
+  select { background: #334155; color: #e5e7eb; }
+  button { cursor:pointer; background:#22c55e; color:#022c22; font-weight:bold; transition: background-color 0.2s; }
+  button:disabled { background:#6b7280; cursor: not-allowed; }
+  #message { margin:0.8rem 0 0; font-weight: bold; min-height: 1.2rem; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
+  th, td { padding: 0.75rem; text-align: left; border: 1px solid #334155; }
+  thead th { background-color: #334155; }
+  tr:nth-child(even) { background-color: #1f2937; }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>Votazione Squadre (nPoint API)</h1>
+
+    <div>
+        <label for="teamSelect">Squadra:</label>
+        <select id="teamSelect"></select>
+
+        <label for="scoreSelect">Voto (1-10):</label>
+        <select id="scoreSelect"></select>
+
+        <button id="voteBtn">Vota</button>
+        <div id="message"></div>
+    </div>
+
+    <hr>
+
+    <h2>Statistiche</h2>
+    <canvas id="chart"></canvas>
+    
+    <table border="1">
+        <thead>
+            <tr><th>Squadra</th><th>Voti Totali</th></tr>
+        </thead>
+        <tbody id="statsBody"></tbody>
+    </table>
+</div>
+
+<script>
+// ⚠️ CORREZIONE ESSENZIALE: Usiamo l'URL API corretto.
+// Ho usato l'ID dal tuo bin precedente come esempio.
+const NPOINT_URL = "https://api.npoint.io/236e96a835b472f70f49"; 
+
+const TEAMS = ["Squadra 1","Squadra 2","Squadra 3","Squadra 4","Squadra 5","Squadra 6","Squadra 7","Squadra 8"];
+
+const teamSelect = document.getElementById("teamSelect");
+const scoreSelect = document.getElementById("scoreSelect");
+const voteBtn = document.getElementById("voteBtn");
+const message = document.getElementById("message");
+const statsBody = document.getElementById("statsBody");
+const ctx = document.getElementById("chart").getContext("2d");
+
+let votesData = {}; 
+let chart; 
+
+function populateSelects() {
+    TEAMS.forEach(t => {
+        const opt = document.createElement("option"); opt.value=t; opt.textContent=t;
+        teamSelect.appendChild(opt);
+    });
+    for(let i=1;i<=10;i++){
+        const opt = document.createElement("option"); opt.value=i; opt.textContent=i;
+        scoreSelect.appendChild(opt);
+    }
+}
+
+// Lettura Dati: Usa l'URL API (GET)
+async function fetchVotes() {
+    try {
+        const res = await fetch(NPOINT_URL);
+        if (!res.ok) throw new Error("Risposta API non OK.");
+        
+        const data = await res.json();
+        
+        TEAMS.forEach(t => {
+            if (!data[t] || typeof data[t].votes !== 'number') {
+                data[t] = { votes: 0 }; 
+            }
+        });
+        
+        votesData = data;
+        return true;
+        
+    } catch(e){
+        console.error("Errore fetch nPoint:", e);
+        message.textContent = "❌ Errore caricamento dati (Verifica l'URL API).";
+        return false;
+    }
+}
+
+// Scrittura Dati: Usa l'URL API e il metodo POST (anziché PATCH, non supportato)
+async function sendVote(updatedData) {
+    try {
+        const res = await fetch(NPOINT_URL, {
+            method: 'POST', // POST è il metodo corretto per sovrascrivere l'intero bin su nPoint
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updatedData) 
+        });
+
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Errore HTTP ${res.status}: ${errorText || "Invio fallito."}`);
+        }
+
+        setTimeout(() => message.textContent = '', 3000);
+        return true;
+
+    } catch (e) {
+        console.error("Errore scrittura nPoint:", e);
+        message.textContent = `❌ Errore nella scrittura dei dati: ${e.message}.`; 
+        return false;
+    }
+}
+
+// Funzione di rendering... (rimane invariata)
+function renderStats() {
+    statsBody.innerHTML = "";
+    const labels=[], data=[];
+    
+    const sortedTeams = TEAMS.map(t => ({ name: t, votes: votesData[t]?.votes || 0 }))
+                             .sort((a, b) => b.votes - a.votes);
+
+    sortedTeams.forEach(t => {
+        labels.push(t.name);
+        data.push(t.votes);
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${t.name}</td><td>${t.votes}</td>`;
+        statsBody.appendChild(row);
+    });
+
+    if(chart){
+        chart.data.labels=labels; chart.data.datasets[0].data=data; chart.update();
+    }else{
+        chart = new Chart(ctx,{
+            type:"bar",
+            data:{ labels:labels, datasets:[{ label:"Voti Totali", data:data, backgroundColor:"#22c55e" }] },
+            options:{ 
+                responsive:true, 
+                scales:{ 
+                    y:{ beginAtZero:true, ticks: { color: '#e5e7eb' }, grid: { color: '#374151' } },
+                    x: { ticks: { color: '#e5e7eb' }, grid: { color: '#374151' } }
+                },
+                plugins: { legend: { labels: { color: '#e5e7eb' } } }
+            }
+        });
+    }
+}
+
+// Gestione Evento Voto (CLICK)
+voteBtn.addEventListener("click", async ()=>{
+    const team = teamSelect.value;
+    const score = parseInt(scoreSelect.value, 10);
+    
+    if(!team || isNaN(score)) return;
+
+    voteBtn.disabled = true;
+    message.textContent = '⏳ Invio del voto in corso... Attendere.';
+
+    // 1. Leggi i dati correnti
+    const fetchSuccess = await fetchVotes();
+    if (!fetchSuccess) {
+        voteBtn.disabled = false;
+        return;
+    }
+
+    // 2. Aggiorna i dati in locale
+    if(!votesData[team]) votesData[team] = { votes: 0 };
+    votesData[team].votes += score;
+
+    // 3. Invia i dati aggiornati (POST)
+    const sendSuccess = await sendVote(votesData);
+
+    if (sendSuccess) {
+        message.textContent = `✅ Voto di ${score} per ${team} registrato con successo!`;
+        renderStats();
+    } 
+
+    voteBtn.disabled = false;
+});
+
+// Avvio
+populateSelects();
+fetchVotes().then(renderStats);
+</script>
+</body>
+</html>
