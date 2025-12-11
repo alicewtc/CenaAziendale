@@ -169,31 +169,60 @@ function renderStats() {
     }
 }
 
-// Handle voting
+async function sendVote(team, additionalVotes) {
+    try {
+        // Fetch voti correnti
+        const res = await fetch(NPOINT_URL);
+        if (!res.ok) throw new Error("HTTP error " + res.status);
+        const currentData = await res.json();
+
+        // Somma il nuovo voto
+        if (!currentData[team] || typeof currentData[team].votes !== "number") {
+            currentData[team] = { votes: 0 };
+        }
+        currentData[team].votes += additionalVotes;
+
+        // Invia la nuova somma
+        const patchRes = await fetch(NPOINT_URL, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(currentData)
+        });
+
+        if (!patchRes.ok) throw new Error("PATCH fallita: " + patchRes.status);
+        return currentData; // ritorna dati aggiornati
+
+    } catch (e) {
+        console.warn("Impossibile inviare i dati al server:", e);
+        message.textContent = "⚠️ Non è stato possibile inviare il voto al server, registrato solo localmente.";
+        // aggiorna solo localmente
+        votesData[team].votes += additionalVotes;
+        return votesData;
+    }
+}
+
 voteBtn.addEventListener("click", async () => {
     const team = teamSelect.value;
     const score = parseInt(scoreSelect.value, 10);
-    if(!team || isNaN(score)) return;
+    if (!team || isNaN(score)) return;
 
     voteBtn.disabled = true;
-    message.textContent = '⏳ Invio del voto in corso...';
+    message.textContent = "⏳ Invio del voto in corso...";
 
-    const fetchSuccess = await fetchVotes();
-    if(!fetchSuccess){ voteBtn.disabled = false; return; }
+    // Invio PATCH + fetch dei voti correnti
+    const updatedData = await sendVote(team, score);
 
-    votesData[team].votes += score;
-    const sendSuccess = await sendVote(votesData);
+    votesData = updatedData;
 
-    if(sendSuccess){
-        message.textContent = `✅ Voto di ${score} per ${team} registrato!`;
-        if(!votedTeams.includes(team)){
-            votedTeams.push(team);
-            localStorage.setItem("votedTeams", JSON.stringify(votedTeams));
-        }
-        populateSelects();
-        renderStats();
+    if (!votedTeams.includes(team)) {
+        votedTeams.push(team);
+        localStorage.setItem("votedTeams", JSON.stringify(votedTeams));
     }
 
+    populateSelects();
+    renderStats();
+
+    message.textContent = "✅ Voto registrato!";
     voteBtn.disabled = false;
 });
 
